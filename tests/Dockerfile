@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ ENV UV_LINK_MODE=copy
 ENV PYTHONPATH=/app/etl_src:/app
 
 COPY pyproject.toml .
-RUN uv sync --frozen --no-install-project
+RUN uv sync --no-install-project
 
 COPY . .
 

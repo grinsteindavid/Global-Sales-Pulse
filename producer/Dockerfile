@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -8,10 +8,10 @@ ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
 COPY pyproject.toml .
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --no-dev --no-install-project
 
 COPY src/ src/
 
-RUN uv sync --frozen --no-dev
+RUN uv sync --no-dev
 
 CMD ["uv", "run", "python", "-m", "src.main"]

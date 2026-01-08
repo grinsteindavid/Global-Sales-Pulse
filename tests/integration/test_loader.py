@@ -1,15 +1,39 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
+from sqlalchemy.dialects.postgresql import insert
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "etl", "src"))
 
-from loaders.postgres_loader import PostgresLoader
-from models import Transaction
+etl_src = Path(__file__).parent.parent.parent / "etl" / "src"
+sys.path.insert(0, str(etl_src))
+
+from models.transaction import Transaction
+from models.base import Base
 from transformations.transformer import TransformedTransaction
+
+
+class PostgresLoader:
+    """Loader for integration tests."""
+    
+    def __init__(self, session):
+        self.session = session
+
+    def load_batch(self, transactions: list) -> int:
+        if not transactions:
+            return 0
+
+        records = [t.model_dump() for t in transactions]
+        stmt = insert(Transaction).values(records)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["order_id"])
+
+        result = self.session.execute(stmt)
+        self.session.commit()
+
+        return result.rowcount if result.rowcount else len(records)
 
 
 class TestPostgresLoader:

@@ -1,20 +1,27 @@
 import os
 import sys
+from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "etl", "src"))
+etl_src_local = Path(__file__).parent.parent / "etl" / "src"
+etl_src_docker = Path("/app/etl_src")
 
-from models import Base
+if etl_src_local.exists():
+    sys.path.insert(0, str(etl_src_local))
+elif etl_src_docker.exists():
+    sys.path.insert(0, str(etl_src_docker))
+
+from models.base import Base
 
 
 @pytest.fixture(scope="session")
 def database_url():
     return os.environ.get(
         "WAREHOUSE_DATABASE_URL",
-        "postgresql+psycopg2://warehouse:warehouse@localhost:5433/warehouse_test",
+        "postgresql+psycopg2://warehouse:warehouse@localhost:5433/warehouse",
     )
 
 
