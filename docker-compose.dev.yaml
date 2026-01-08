@@ -1,0 +1,26 @@
+services:
+  postgres-warehouse:
+    ports:
+      - "5433:5432"
+
+  kafka:
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093
+
+  airflow-webserver:
+    environment:
+      AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
+      AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE: "true"
+
+  airflow-scheduler:
+    environment:
+      AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 10
+
+  producer:
+    environment:
+      LOG_LEVEL: DEBUG

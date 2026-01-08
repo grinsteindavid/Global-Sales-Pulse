@@ -1,3 +1,10 @@
+# Environment files
+.env
+*.env.local
+
+# UV lock files (optional - can be committed for reproducibility)
+# uv.lock
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

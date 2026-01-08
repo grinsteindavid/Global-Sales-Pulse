@@ -1,0 +1,214 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - sales-pulse-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - sales-pulse-network
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  postgres-airflow:
+    image: postgres:15-alpine
+    container_name: postgres-airflow
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-airflow-data:/var/lib/postgresql/data
+    networks:
+      - sales-pulse-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-warehouse:
+    image: postgres:15-alpine
+    container_name: postgres-warehouse
+    environment:
+      POSTGRES_USER: ${WAREHOUSE_DB_USER:-warehouse}
+      POSTGRES_PASSWORD: ${WAREHOUSE_DB_PASSWORD:-warehouse}
+      POSTGRES_DB: ${WAREHOUSE_DB_NAME:-warehouse}
+    volumes:
+      - postgres-warehouse-data:/var/lib/postgresql/data
+    networks:
+      - sales-pulse-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warehouse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-init:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    container_name: db-init
+    command: ["uv", "run", "alembic", "upgrade", "head"]
+    environment:
+      WAREHOUSE_DATABASE_URL: ${WAREHOUSE_DATABASE_URL:-postgresql+psycopg2://warehouse:warehouse@postgres-warehouse:5432/warehouse}
+    depends_on:
+      postgres-warehouse:
+        condition: service_healthy
+    networks:
+      - sales-pulse-network
+
+  airflow-init:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile.airflow
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username $${AIRFLOW_ADMIN_USER:-admin} \
+          --password $${AIRFLOW_ADMIN_PASSWORD:-admin} \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com || true
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES:-false}
+      AIRFLOW_ADMIN_USER: ${AIRFLOW_ADMIN_USER:-admin}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-admin}
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
+    networks:
+      - sales-pulse-network
+
+  airflow-webserver:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile.airflow
+    container_name: airflow-webserver
+    command: webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES:-false}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY:-secret}
+      WAREHOUSE_DATABASE_URL: ${WAREHOUSE_DATABASE_URL:-postgresql+psycopg2://warehouse:warehouse@postgres-warehouse:5432/warehouse}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_TOPIC_TRANSACTIONS: ${KAFKA_TOPIC_TRANSACTIONS:-transactions}
+      KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-etl-consumer}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    networks:
+      - sales-pulse-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile.airflow
+    container_name: airflow-scheduler
+    command: scheduler
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES:-false}
+      WAREHOUSE_DATABASE_URL: ${WAREHOUSE_DATABASE_URL:-postgresql+psycopg2://warehouse:warehouse@postgres-warehouse:5432/warehouse}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_TOPIC_TRANSACTIONS: ${KAFKA_TOPIC_TRANSACTIONS:-transactions}
+      KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-etl-consumer}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    networks:
+      - sales-pulse-network
+
+  producer:
+    build:
+      context: ./producer
+      dockerfile: Dockerfile
+    container_name: producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_TOPIC_TRANSACTIONS: ${KAFKA_TOPIC_TRANSACTIONS:-transactions}
+      PRODUCER_INTERVAL_MIN: ${PRODUCER_INTERVAL_MIN:-1.0}
+      PRODUCER_INTERVAL_MAX: ${PRODUCER_INTERVAL_MAX:-2.0}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - sales-pulse-network
+    restart: unless-stopped
+
+networks:
+  sales-pulse-network:
+    driver: bridge
+
+volumes:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:
+  postgres-airflow-data:
+  postgres-warehouse-data:
+  airflow-logs:

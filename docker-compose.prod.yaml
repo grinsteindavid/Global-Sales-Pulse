@@ -1,0 +1,56 @@
+services:
+  zookeeper:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: always
+
+  kafka:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: always
+
+  postgres-airflow:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: always
+
+  postgres-warehouse:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: always
+
+  airflow-webserver:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: always
+    environment:
+      AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
+      AIRFLOW__WEBSERVER__WORKERS: 2
+
+  airflow-scheduler:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: always
+    environment:
+      AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
+
+  producer:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+    environment:
+      LOG_LEVEL: INFO

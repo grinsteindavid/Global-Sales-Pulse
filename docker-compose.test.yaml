@@ -1,0 +1,31 @@
+services:
+  postgres-warehouse:
+    environment:
+      POSTGRES_DB: warehouse_test
+
+  kafka:
+    environment:
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  test-runner:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    container_name: test-runner
+    environment:
+      WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse:warehouse@postgres-warehouse:5432/warehouse_test
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC_TRANSACTIONS: transactions_test
+      KAFKA_CONSUMER_GROUP: etl-consumer-test
+      PYTHONPATH: /app
+    volumes:
+      - ./tests:/app/tests
+      - ./etl/src:/app/etl_src
+    depends_on:
+      postgres-warehouse:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - sales-pulse-network
+    command: ["uv", "run", "pytest", "-v", "--tb=short"]
