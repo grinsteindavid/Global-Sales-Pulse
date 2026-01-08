@@ -1,0 +1,601 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS total FROM transactions WHERE transaction_timestamp >= NOW() - INTERVAL '24 hours'",
+          "refId": "A"
+        }
+      ],
+      "title": "Transactions (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(total_amount), 0) AS revenue FROM transactions WHERE transaction_timestamp >= NOW() - INTERVAL '24 hours'",
+          "refId": "A"
+        }
+      ],
+      "title": "Revenue (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN COUNT(*) > 0 THEN (COUNT(*) FILTER (WHERE is_fraud_flagged) * 100.0 / COUNT(*)) ELSE 0 END AS fraud_rate FROM transactions WHERE transaction_timestamp >= NOW() - INTERVAL '24 hours'",
+          "refId": "A"
+        }
+      ],
+      "title": "Fraud Rate (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "blue", "value": null}
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(tax_amount), 0) AS tax FROM transactions WHERE transaction_timestamp >= NOW() - INTERVAL '24 hours'",
+          "refId": "A"
+        }
+      ],
+      "title": "Tax Collected (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('minute', transaction_timestamp) AS time,\n  COUNT(*) AS transactions\nFROM transactions\nWHERE transaction_timestamp >= NOW() - INTERVAL '1 hour'\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Transaction Volume (1h)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('minute', transaction_timestamp) AS time,\n  SUM(total_amount) AS revenue\nFROM transactions\nWHERE transaction_timestamp >= NOW() - INTERVAL '1 hour'\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Revenue Over Time (1h)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 12},
+      "id": 7,
+      "options": {
+        "displayLabels": ["percent"],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["sum"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  product_category,\n  SUM(total_amount) AS revenue\nFROM transactions\nWHERE transaction_timestamp >= NOW() - INTERVAL '24 hours'\nGROUP BY product_category\nORDER BY revenue DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Revenue by Category (24h)",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "is_fraud_flagged"},
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {"type": "value", "options": {"true": {"text": "FRAUD", "color": "red"}}},
+                  {"type": "value", "options": {"false": {"text": "OK", "color": "green"}}}
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "total_amount"},
+            "properties": [
+              {"id": "unit", "value": "currencyUSD"},
+              {"id": "decimals", "value": 2}
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 16, "x": 8, "y": 12},
+      "id": 8,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "transaction_timestamp"}]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  order_id,\n  customer_id,\n  product_category,\n  total_amount,\n  is_fraud_flagged,\n  transaction_timestamp\nFROM transactions\nORDER BY transaction_timestamp DESC\nLIMIT 50",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent Transactions",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background",
+              "mode": "basic"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "total_amount"},
+            "properties": [
+              {"id": "unit", "value": "currencyUSD"},
+              {"id": "decimals", "value": 2}
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 20},
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "transaction_timestamp"}]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "${datasource}"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  order_id,\n  customer_id,\n  product_category,\n  total_amount,\n  transaction_timestamp\nFROM transactions\nWHERE is_fraud_flagged = true\nORDER BY transaction_timestamp DESC\nLIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "title": "Flagged Fraud Transactions",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["sales", "transactions", "fraud"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "PostgreSQL Warehouse",
+          "value": "PostgreSQL Warehouse"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "postgres",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Sales Pulse Dashboard",
+  "uid": "sales-pulse-main",
+  "version": 1,
+  "weekStart": ""
+}

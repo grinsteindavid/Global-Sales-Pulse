@@ -201,6 +201,28 @@ services:
       - sales-pulse-network
     restart: unless-stopped
 
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      postgres-warehouse:
+        condition: service_healthy
+    networks:
+      - sales-pulse-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   sales-pulse-network:
     driver: bridge
@@ -212,3 +234,4 @@ volumes:
   postgres-airflow-data:
   postgres-warehouse-data:
   airflow-logs:
+  grafana-data:

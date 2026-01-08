@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-down dev-logs prod-up prod-down prod-logs test test-unit test-int db-migrate db-reset lint shell-etl shell-producer clean
+.PHONY: help dev-up dev-down dev-logs prod-up prod-down prod-logs test test-unit test-int db-migrate db-reset lint shell-etl shell-producer shell-grafana grafana-logs clean
 
 DOCKER_COMPOSE = docker compose
 DEV_COMPOSE = $(DOCKER_COMPOSE) -f docker-compose.yaml -f docker-compose.dev.yaml
@@ -39,6 +39,7 @@ dev-up:
 	$(DEV_COMPOSE) up -d
 	@echo "Development environment started"
 	@echo "Airflow UI: http://localhost:8080 (admin/admin)"
+	@echo "Grafana UI: http://localhost:3000 (admin/admin)"
 	@echo "Postgres Warehouse: localhost:5433"
 
 dev-down:
@@ -105,6 +106,12 @@ shell-producer:
 
 shell-kafka:
 	$(DEV_COMPOSE) exec kafka /bin/bash
+
+shell-grafana:
+	$(DEV_COMPOSE) exec grafana /bin/sh
+
+grafana-logs:
+	$(DEV_COMPOSE) logs -f grafana
 
 kafka-topics:
 	$(DEV_COMPOSE) exec kafka kafka-topics --bootstrap-server localhost:9092 --list

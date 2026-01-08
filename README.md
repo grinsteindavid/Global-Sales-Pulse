@@ -62,6 +62,7 @@ make dev-logs
 | Service | URL |
 |---------|-----|
 | Airflow UI | http://localhost:8080 (admin/admin) |
+| Grafana UI | http://localhost:3000 (admin/admin) |
 | Postgres Warehouse | localhost:5433 |
 
 ### Run Tests
@@ -103,6 +104,10 @@ Global-Sales-Pulse/
 │
 ├── tests/                       # Containerized tests
 │
+├── grafana/                     # Grafana configuration
+│   ├── provisioning/            # Auto-configured datasources
+│   └── dashboards/              # Pre-built dashboards
+│
 └── docs/
     └── ARCHITECTURE.md
 ```
@@ -132,6 +137,7 @@ make db-reset            # Reset database
 make lint                # Run linter (ruff)
 make shell-etl           # Shell into ETL container
 make shell-producer      # Shell into producer container
+make grafana-logs        # View Grafana logs
 ```
 
 ## Key Concepts Demonstrated

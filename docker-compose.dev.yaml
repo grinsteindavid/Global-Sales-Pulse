@@ -24,3 +24,7 @@ services:
   producer:
     environment:
       LOG_LEVEL: DEBUG
+
+  grafana:
+    ports:
+      - "3000:3000"

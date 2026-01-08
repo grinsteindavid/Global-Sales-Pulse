@@ -7,32 +7,41 @@ Global Sales Pulse is a **micro-batch ETL pipeline** designed for real-time fina
 ## Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    DOCKER NETWORK                                        │
-│                                                                                          │
-│  ┌──────────────┐    ┌─────────────────┐    ┌─────────────────────────────────────────┐ │
-│  │   Producer   │    │     Kafka       │    │              Airflow                     │ │
-│  │              │    │   + Zookeeper   │    │  ┌───────────┐    ┌──────────────────┐  │ │
-│  │ Generates    │───▶│                 │───▶│  │ Scheduler │───▶│   ETL DAG        │  │ │
-│  │ transactions │    │ Topic:          │    │  └───────────┘    │                  │  │ │
-│  │ every 1-2s   │    │ transactions    │    │                   │ 1. Extract       │  │ │
-│  │              │    │                 │    │  ┌───────────┐    │ 2. Validate      │  │ │
-│  └──────────────┘    │ Retention: 7d   │    │  │ Webserver │    │ 3. Transform     │  │ │
-│                      │ Partitions: 3   │    │  │ :8080     │    │ 4. Load          │  │ │
-│                      └─────────────────┘    │  └───────────┘    └────────┬─────────┘  │ │
-│                                             └────────────────────────────┼────────────┘ │
-│                                                                          │              │
-│                                                                          ▼              │
-│  ┌──────────────────────┐                              ┌─────────────────────────────┐  │
-│  │  Postgres (Airflow)  │                              │   Postgres (Warehouse)      │  │
-│  │  :5432               │                              │   :5433                     │  │
-│  │                      │                              │                             │  │
-│  │  - DAG metadata      │                              │   - transactions table      │  │
-│  │  - Task history      │                              │   - Indexed for analytics   │  │
-│  │  - Connections       │                              │   - Partitioned by date     │  │
-│  └──────────────────────┘                              └─────────────────────────────┘  │
-│                                                                                          │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                      DOCKER NETWORK                                            │
+│                                                                                                │
+│  ┌──────────────┐    ┌─────────────────┐    ┌─────────────────────────────────────────┐       │
+│  │   Producer   │    │     Kafka       │    │              Airflow                     │       │
+│  │              │    │   + Zookeeper   │    │  ┌───────────┐    ┌──────────────────┐  │       │
+│  │ Generates    │───▶│                 │───▶│  │ Scheduler │───▶│   ETL DAG        │  │       │
+│  │ transactions │    │ Topic:          │    │  └───────────┘    │                  │  │       │
+│  │ every 1-2s   │    │ transactions    │    │                   │ 1. Extract       │  │       │
+│  │              │    │                 │    │  ┌───────────┐    │ 2. Validate      │  │       │
+│  └──────────────┘    │ Retention: 7d   │    │  │ Webserver │    │ 3. Transform     │  │       │
+│                      │ Partitions: 3   │    │  │ :8080     │    │ 4. Load          │  │       │
+│                      └─────────────────┘    │  └───────────┘    └────────┬─────────┘  │       │
+│                                             └────────────────────────────┼────────────┘       │
+│                                                                          │                    │
+│                                                                          ▼                    │
+│  ┌──────────────────────┐                              ┌─────────────────────────────┐       │
+│  │  Postgres (Airflow)  │                              │   Postgres (Warehouse)      │       │
+│  │  :5432               │                              │   :5433                     │       │
+│  │                      │                              │                             │       │
+│  │  - DAG metadata      │                              │   - transactions table      │◀──┐   │
+│  │  - Task history      │                              │   - Indexed for analytics   │   │   │
+│  │  - Connections       │                              │   - Partitioned by date     │   │   │
+│  └──────────────────────┘                              └─────────────────────────────┘   │   │
+│                                                                                          │   │
+│                                                        ┌─────────────────────────────┐   │   │
+│                                                        │        Grafana              │───┘   │
+│                                                        │        :3000                │       │
+│                                                        │                             │       │
+│                                                        │  - Real-time dashboards     │       │
+│                                                        │  - Transaction metrics      │       │
+│                                                        │  - Fraud monitoring         │       │
+│                                                        └─────────────────────────────┘       │
+│                                                                                                │
+└───────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Component Details
@@ -184,20 +193,32 @@ CREATE INDEX idx_transactions_customer ON transactions(customer_id);
 
 ## Monitoring & Observability
 
-### Airflow UI
+### Airflow UI (http://localhost:8080)
 - DAG run history
 - Task duration metrics
 - Failure alerts (email/Slack configurable)
+
+### Grafana UI (http://localhost:3000)
+- **Real-time dashboards** with 30-second auto-refresh
+- Pre-built "Sales Pulse Dashboard" includes:
+  - Transaction volume (24h count, per-minute time series)
+  - Revenue metrics (total, by category pie chart)
+  - Fraud rate monitoring with threshold alerts
+  - Tax collection totals
+  - Recent transactions table
+  - Flagged fraud transactions table
+- Auto-provisioned PostgreSQL Warehouse datasource
+- Customizable dashboards via JSON
 
 ### Logging
 - Structured JSON logs
 - Correlation IDs per batch
 - Log levels: DEBUG (dev), INFO (prod)
 
-### Metrics (Future Enhancement)
+### Future Enhancements
 - Prometheus metrics endpoint
-- Grafana dashboards
 - Kafka lag monitoring
+- Grafana alerting rules
 
 ## Security Considerations
 
