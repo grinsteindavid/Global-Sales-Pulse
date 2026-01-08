@@ -123,6 +123,7 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     catchup=False,
     max_active_runs=1,
+    is_paused_upon_creation=False,
     tags=["etl", "kafka", "postgres"],
 ) as dag:
 
