@@ -40,6 +40,7 @@ dev-up:
 	@echo "Development environment started"
 	@echo "Airflow UI: http://localhost:8080 (admin/admin)"
 	@echo "Grafana UI: http://localhost:3000 (admin/admin)"
+	@echo "Kafka UI:   http://localhost:8081"
 	@echo "Postgres Warehouse: localhost:5433"
 
 dev-down:
