@@ -69,16 +69,14 @@ prod-logs:
 prod-build:
 	$(PROD_COMPOSE) build --no-cache
 
-# Testing - always start fresh to avoid stale state
+# Testing - unit uses minimal infra (--no-deps), int/e2e use full stack
 test:
 	$(TEST_COMPOSE) down -v --remove-orphans 2>/dev/null || true
 	$(TEST_COMPOSE) up --build --abort-on-container-exit test-runner
 	$(TEST_COMPOSE) down -v
 
 test-unit:
-	$(TEST_COMPOSE) down -v --remove-orphans 2>/dev/null || true
-	$(TEST_COMPOSE) run --rm test-runner uv run pytest tests/unit -v --tb=short
-	$(TEST_COMPOSE) down -v
+	$(TEST_COMPOSE) run --rm --no-deps test-runner uv run pytest tests/unit -v --tb=short
 
 test-int:
 	$(TEST_COMPOSE) down -v --remove-orphans 2>/dev/null || true
