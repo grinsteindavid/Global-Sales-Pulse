@@ -1,47 +1,195 @@
 services:
-  postgres-warehouse-test:
+  zookeeper-test:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  kafka-test:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      zookeeper-test:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-test:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-test:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  postgres-test:
     image: postgres:15-alpine
-    container_name: postgres-warehouse-test
     environment:
       POSTGRES_USER: warehouse_test
       POSTGRES_PASSWORD: warehouse_test
       POSTGRES_DB: warehouse_test
-    volumes:
-      - postgres-warehouse-test-data:/var/lib/postgresql/data
     networks:
-      - sales-pulse-network
+      - test-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U warehouse_test"]
-      interval: 5s
-      timeout: 5s
+      interval: 3s
+      timeout: 3s
       retries: 5
 
-  kafka:
+  postgres-airflow-test:
+    image: postgres:15-alpine
     environment:
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      POSTGRES_USER: airflow_test
+      POSTGRES_PASSWORD: airflow_test
+      POSTGRES_DB: airflow_test
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  db-init-test:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    command: ["uv", "run", "alembic", "upgrade", "head"]
+    environment:
+      WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-test:5432/warehouse_test
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  airflow-init-test:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile.airflow
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname Test \
+          --lastname User \
+          --role Admin \
+          --email test@example.com || true
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow_test:airflow_test@postgres-airflow-test:5432/airflow_test
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    depends_on:
+      postgres-airflow-test:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  airflow-scheduler-test:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile.airflow
+    command: scheduler
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow_test:airflow_test@postgres-airflow-test:5432/airflow_test
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-test:5432/warehouse_test
+      KAFKA_BOOTSTRAP_SERVERS: kafka-test:9092
+      KAFKA_TOPIC_TRANSACTIONS: transactions_test
+      KAFKA_CONSUMER_GROUP: etl-consumer-test
+      ETL_SCHEDULE_SECONDS: "10"
+    volumes:
+      - ./dags:/opt/airflow/dags
+    depends_on:
+      airflow-init-test:
+        condition: service_completed_successfully
+      db-init-test:
+        condition: service_completed_successfully
+      kafka-test:
+        condition: service_healthy
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  airflow-webserver-test:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile.airflow
+    command: webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow_test:airflow_test@postgres-airflow-test:5432/airflow_test
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: test-secret-key
+      WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-test:5432/warehouse_test
+      KAFKA_BOOTSTRAP_SERVERS: kafka-test:9092
+      KAFKA_TOPIC_TRANSACTIONS: transactions_test
+      KAFKA_CONSUMER_GROUP: etl-consumer-test
+    volumes:
+      - ./dags:/opt/airflow/dags
+    depends_on:
+      airflow-init-test:
+        condition: service_completed_successfully
+      db-init-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   test-runner:
     build:
       context: ./tests
       dockerfile: Dockerfile
-    container_name: test-runner
     environment:
-      WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-warehouse-test:5432/warehouse_test
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-test:5432/warehouse_test
+      KAFKA_BOOTSTRAP_SERVERS: kafka-test:9092
       KAFKA_TOPIC_TRANSACTIONS: transactions_test
       KAFKA_CONSUMER_GROUP: etl-consumer-test
+      AIRFLOW_API_URL: http://airflow-webserver-test:8080
+      AIRFLOW_USERNAME: admin
+      AIRFLOW_PASSWORD: admin
       PYTHONPATH: /app
+      LOG_LEVEL: DEBUG
     volumes:
       - ./tests:/app/tests
       - ./etl/src:/app/etl_src
     depends_on:
-      postgres-warehouse-test:
+      postgres-test:
         condition: service_healthy
-      kafka:
+      kafka-test:
+        condition: service_healthy
+      airflow-scheduler-test:
+        condition: service_healthy
+      airflow-webserver-test:
         condition: service_healthy
     networks:
-      - sales-pulse-network
-    command: ["uv", "run", "pytest", "-v", "--tb=short"]
+      - test-network
+    command: ["uv", "run", "pytest", "-v", "-s", "--tb=long", "--log-cli-level=DEBUG"]
 
-volumes:
-  postgres-warehouse-test-data:
+networks:
+  test-network:
+    driver: bridge

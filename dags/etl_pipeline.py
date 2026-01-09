@@ -2,11 +2,14 @@
 ETL Pipeline DAG
 
 Consumes transactions from Kafka, transforms them, and loads to Postgres warehouse.
-Runs every 30 seconds.
+Schedule interval is configurable via ETL_SCHEDULE_SECONDS env var (default: 30s).
 """
 import logging
+import os
 import uuid
 from datetime import datetime, timedelta
+
+ETL_SCHEDULE_SECONDS = int(os.environ.get("ETL_SCHEDULE_SECONDS", "30"))
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -119,7 +122,7 @@ with DAG(
     dag_id="etl_pipeline",
     default_args=default_args,
     description="ETL pipeline: Kafka -> Transform -> Postgres",
-    schedule_interval=timedelta(seconds=30),
+    schedule_interval=timedelta(seconds=ETL_SCHEDULE_SECONDS),
     start_date=datetime(2024, 1, 1),
     catchup=False,
     max_active_runs=1,

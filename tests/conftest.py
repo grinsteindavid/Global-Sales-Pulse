@@ -72,6 +72,24 @@ def kafka_producer(kafka_bootstrap_servers):
 
 
 @pytest.fixture
+def kafka_consumer(kafka_bootstrap_servers, test_topic):
+    """Provide a Kafka consumer for tests."""
+    try:
+        from confluent_kafka import Consumer
+        consumer = Consumer({
+            "bootstrap.servers": kafka_bootstrap_servers,
+            "group.id": f"test-consumer-{uuid.uuid4().hex[:8]}",
+            "auto.offset.reset": "earliest",
+        })
+        topic = os.environ.get("KAFKA_TOPIC_TRANSACTIONS", test_topic)
+        consumer.subscribe([topic])
+        yield consumer
+        consumer.close()
+    except ImportError:
+        pytest.skip("confluent_kafka not available")
+
+
+@pytest.fixture
 def test_topic():
     """Generate a unique topic name for test isolation."""
     return f"test_transactions_{uuid.uuid4().hex[:8]}"

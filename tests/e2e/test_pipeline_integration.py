@@ -1,7 +1,7 @@
-"""End-to-end tests for the ETL pipeline.
+"""Integration tests for the ETL pipeline.
 
-Tests the full flow: Raw message → Transform → Load to database.
-These tests mock Kafka but use a real database connection.
+Tests the Transform → Load flow with a real database connection.
+Kafka is not involved - these tests validate transformation and loading logic.
 """
 import importlib.util
 import json
@@ -28,8 +28,8 @@ from models.base import Base
 
 
 class PostgresLoader:
-    """Simplified loader for e2e tests (mirrors etl/src/loaders/postgres_loader.py)."""
-    
+    """Loader for integration tests - mirrors etl/src/loaders/postgres_loader.py."""
+
     def __init__(self, session):
         self.session = session
 
@@ -66,8 +66,8 @@ def create_raw_message(
     }
 
 
-class TestE2EPipeline:
-    """End-to-end tests simulating the full ETL pipeline."""
+class TestPipelineIntegration:
+    """Integration tests for Transform → Load pipeline."""
 
     @pytest.fixture
     def batch_id(self):

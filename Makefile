@@ -3,7 +3,7 @@
 DOCKER_COMPOSE = docker compose
 DEV_COMPOSE = $(DOCKER_COMPOSE) -f docker-compose.yaml -f docker-compose.dev.yaml
 PROD_COMPOSE = $(DOCKER_COMPOSE) -f docker-compose.yaml -f docker-compose.prod.yaml
-TEST_COMPOSE = $(DOCKER_COMPOSE) -f docker-compose.yaml -f docker-compose.test.yaml
+TEST_COMPOSE = $(DOCKER_COMPOSE) -p sales-pulse-test -f docker-compose.test.yaml
 
 help:
 	@echo "Global Sales Pulse - Makefile Commands"

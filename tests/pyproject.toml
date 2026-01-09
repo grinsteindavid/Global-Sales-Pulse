@@ -12,6 +12,7 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "psycopg2-binary>=2.9.0",
     "alembic>=1.13.0",
+    "requests>=2.31.0",
 ]
 
 [tool.pytest.ini_options]
@@ -19,3 +20,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+markers = [
+    "e2e: marks tests as end-to-end (require full infrastructure)",
+]
+log_cli = true
+log_cli_level = "INFO"

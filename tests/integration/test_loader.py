@@ -72,7 +72,8 @@ class TestPostgresLoader:
 
         assert loaded_count >= 0
 
-        results = session.query(Transaction).all()
+        order_ids = [t.order_id for t in sample_transactions]
+        results = session.query(Transaction).filter(Transaction.order_id.in_(order_ids)).all()
         assert len(results) == 2
 
     def test_load_empty_batch(self, session):
@@ -86,5 +87,6 @@ class TestPostgresLoader:
         loader.load_batch(sample_transactions)
         loaded_count = loader.load_batch(sample_transactions)
 
-        results = session.query(Transaction).all()
+        order_ids = [t.order_id for t in sample_transactions]
+        results = session.query(Transaction).filter(Transaction.order_id.in_(order_ids)).all()
         assert len(results) == 2
