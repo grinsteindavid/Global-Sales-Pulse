@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from typing import Any
 
 from confluent_kafka import Consumer, KafkaError, KafkaException
@@ -30,7 +31,12 @@ class KafkaTransactionConsumer:
         }
         return Consumer(config)
 
-    def consume_batch(self, max_messages: int = 1000, timeout: float = 5.0) -> list[dict[str, Any]]:
+    def consume_batch(
+        self,
+        max_messages: int = 1000,
+        timeout: float = 5.0,
+        max_duration: float = 20.0,
+    ) -> list[dict[str, Any]]:
         if self._consumer is None:
             self._consumer = self._create_consumer()
             self._consumer.subscribe([self.topic])
@@ -38,8 +44,13 @@ class KafkaTransactionConsumer:
         messages: list[dict[str, Any]] = []
         empty_polls = 0
         max_empty_polls = 3
+        start_time = time.time()
 
         while len(messages) < max_messages and empty_polls < max_empty_polls:
+            if time.time() - start_time > max_duration:
+                logger.info(f"Reached max duration of {max_duration}s, stopping consumption")
+                break
+
             msg = self._consumer.poll(timeout=timeout)
 
             if msg is None:
