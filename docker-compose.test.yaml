@@ -113,7 +113,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka-test:9092
       KAFKA_TOPIC_TRANSACTIONS: transactions_test
       KAFKA_CONSUMER_GROUP: etl-consumer-test
-      ETL_SCHEDULE_SECONDS: "10"
+      ETL_SCHEDULE_SECONDS: "5"
     volumes:
       - ./dags:/opt/airflow/dags
     depends_on:
@@ -126,10 +126,11 @@ services:
     networks:
       - test-network
     healthcheck:
-      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
-      interval: 10s
+      test: ["CMD-SHELL", "airflow dags list | grep -q etl_pipeline && airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
+      interval: 5s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 15s
 
   airflow-webserver-test:
     build:
@@ -157,9 +158,10 @@ services:
       - test-network
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 10s
+      interval: 5s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
   test-runner:
     build:

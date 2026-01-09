@@ -71,7 +71,7 @@ def trigger_airflow_dag(dag_id: str = "etl_pipeline") -> bool:
         return False
 
 
-def wait_for_record(session, order_id: str, timeout: int = 30) -> Transaction | None:
+def wait_for_record(session, order_id: str, timeout: int = 20) -> Transaction | None:
     """Poll database until record appears or timeout."""
     import logging
     logger = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ class TestFullPipelineE2E:
 
         trigger_airflow_dag("etl_pipeline")
 
-        record = wait_for_record(session, order_id, timeout=45)
+        record = wait_for_record(session, order_id, timeout=35)
 
         assert record is not None, f"Record {order_id} not found in warehouse"
         assert float(record.amount) == 250.00
