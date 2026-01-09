@@ -1,5 +1,8 @@
+import json
 import os
 import sys
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -49,3 +52,38 @@ def session(engine, tables):
     session.close()
     transaction.rollback()
     connection.close()
+
+
+@pytest.fixture(scope="session")
+def kafka_bootstrap_servers():
+    return os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+
+
+@pytest.fixture
+def kafka_producer(kafka_bootstrap_servers):
+    """Provide a Kafka producer for tests."""
+    try:
+        from confluent_kafka import Producer
+        producer = Producer({"bootstrap.servers": kafka_bootstrap_servers})
+        yield producer
+        producer.flush()
+    except ImportError:
+        pytest.skip("confluent_kafka not available")
+
+
+@pytest.fixture
+def test_topic():
+    """Generate a unique topic name for test isolation."""
+    return f"test_transactions_{uuid.uuid4().hex[:8]}"
+
+
+def create_test_message(order_id: str = None) -> dict:
+    """Helper to create a valid transaction message for tests."""
+    return {
+        "order_id": order_id or str(uuid.uuid4()),
+        "amount": "100.00",
+        "currency": "USD",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "customer_id": "test_customer",
+        "product_category": "electronics",
+    }

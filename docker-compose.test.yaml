@@ -1,7 +1,20 @@
 services:
-  postgres-warehouse:
+  postgres-warehouse-test:
+    image: postgres:15-alpine
+    container_name: postgres-warehouse-test
     environment:
-      POSTGRES_DB: warehouse
+      POSTGRES_USER: warehouse_test
+      POSTGRES_PASSWORD: warehouse_test
+      POSTGRES_DB: warehouse_test
+    volumes:
+      - postgres-warehouse-test-data:/var/lib/postgresql/data
+    networks:
+      - sales-pulse-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warehouse_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   kafka:
     environment:
@@ -13,7 +26,7 @@ services:
       dockerfile: Dockerfile
     container_name: test-runner
     environment:
-      WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse:warehouse@postgres-warehouse:5432/warehouse
+      WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-warehouse-test:5432/warehouse_test
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_TOPIC_TRANSACTIONS: transactions_test
       KAFKA_CONSUMER_GROUP: etl-consumer-test
@@ -22,10 +35,13 @@ services:
       - ./tests:/app/tests
       - ./etl/src:/app/etl_src
     depends_on:
-      postgres-warehouse:
+      postgres-warehouse-test:
         condition: service_healthy
       kafka:
         condition: service_healthy
     networks:
       - sales-pulse-network
     command: ["uv", "run", "pytest", "-v", "--tb=short"]
+
+volumes:
+  postgres-warehouse-test-data:

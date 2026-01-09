@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-down dev-logs prod-up prod-down prod-logs test test-unit test-int db-migrate db-reset lint shell-etl shell-producer shell-grafana grafana-logs clean
+.PHONY: help dev-up dev-down dev-logs prod-up prod-down prod-logs test test-unit test-int test-e2e db-migrate db-reset lint shell-etl shell-producer shell-grafana grafana-logs clean
 
 DOCKER_COMPOSE = docker compose
 DEV_COMPOSE = $(DOCKER_COMPOSE) -f docker-compose.yaml -f docker-compose.dev.yaml
@@ -23,6 +23,7 @@ help:
 	@echo "  make test            Run all tests in container"
 	@echo "  make test-unit       Run unit tests only"
 	@echo "  make test-int        Run integration tests only"
+	@echo "  make test-e2e        Run end-to-end tests only"
 	@echo ""
 	@echo "Database:"
 	@echo "  make db-migrate      Run Alembic migrations"
@@ -81,6 +82,10 @@ test-int:
 	$(TEST_COMPOSE) run --rm test-runner uv run pytest tests/integration -v --tb=short
 	$(TEST_COMPOSE) down -v
 
+test-e2e:
+	$(TEST_COMPOSE) run --rm test-runner uv run pytest tests/e2e -v --tb=short
+	$(TEST_COMPOSE) down -v
+
 # Database
 db-migrate:
 	$(DEV_COMPOSE) exec airflow-scheduler uv run alembic upgrade head
@@ -122,7 +127,8 @@ kafka-consume:
 
 # Cleanup
 clean:
-	$(DOCKER_COMPOSE) -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.test.yaml down -v --remove-orphans
+	$(DOCKER_COMPOSE) -f docker-compose.yaml -f docker-compose.dev.yaml down -v --remove-orphans
+	$(TEST_COMPOSE) down -v --remove-orphans
 	docker system prune -f
 
 # Setup
