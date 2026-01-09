@@ -141,6 +141,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow_test:airflow_test@postgres-airflow-test:5432/airflow_test
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: test-secret-key
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
       WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-test:5432/warehouse_test
       KAFKA_BOOTSTRAP_SERVERS: kafka-test:9092
       KAFKA_TOPIC_TRANSACTIONS: transactions_test
