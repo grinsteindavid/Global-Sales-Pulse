@@ -65,7 +65,14 @@ services:
     build:
       context: ./etl
       dockerfile: Dockerfile
-    command: ["uv", "run", "alembic", "upgrade", "head"]
+    command: >
+      sh -c "
+        echo '🚀 Running database migrations...' &&
+        uv run alembic upgrade head &&
+        echo '🔍 Running schema validation...' &&
+        uv run python scripts/validate_schema.py &&
+        echo '✅ Database initialization completed successfully'
+      "
     environment:
       WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-test:5432/warehouse_test
     depends_on:

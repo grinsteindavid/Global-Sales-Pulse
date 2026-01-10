@@ -191,6 +191,146 @@ CREATE INDEX idx_transactions_customer ON transactions(customer_id);
 - Transaction rollback on failure
 - Alembic migrations are idempotent
 
+## Database Schema Validation
+
+### Overview
+The system includes a comprehensive schema validation framework that ensures database integrity before allowing services to start. This prevents deployment of broken schemas and guarantees data consistency.
+
+### Validation Pipeline
+```bash
+alembic upgrade head && python scripts/validate_schema.py
+```
+
+### Validation Checks
+
+#### 1. Database Connectivity
+- Verifies database connection is established
+- Tests basic query execution capability
+
+#### 2. Schema Completeness
+- **Dynamic table discovery** - Automatically finds all tables
+- Validates each table has columns (no empty tables)
+- **Future-proof** - Works with any new tables added later
+
+#### 3. Table Structure
+- **Primary key validation** - Every table must have a PK
+- **Foreign key detection** - Reports relationships found
+- **Column integrity** - Validates column names and types
+- **Smart warnings** - Flags potential issues (e.g., nullable *_id columns)
+
+#### 4. Performance Indexes
+- **Index discovery** - Finds all indexes across all tables
+- **Column mapping validation** - Ensures indexes reference valid columns
+- **Performance optimization** - Confirms query optimization indexes exist
+
+#### 5. Constraints
+- **Primary key constraints** - Validates PK enforcement
+- **Unique constraints** - Checks uniqueness rules
+- **NOT NULL constraints** - Validates required field enforcement
+- **Constraint counting** - Reports total constraints per table
+
+#### 6. Referential Integrity
+- **Table accessibility** - Ensures all tables are queryable
+- **Data type validation** - Tests prepared statement creation
+- **Zero data insertion** - Validates without polluting database
+- **Row count reporting** - Shows current table sizes
+
+### Failure Prevention
+
+#### Exit Code Behavior
+- **Exit 0** ✅ = Success → Dependent services start
+- **Exit 1** ❌ = Failure → Dependent services blocked
+
+#### Docker Compose Integration
+```yaml
+db-init-test:
+  command: >
+    sh -c "
+      alembic upgrade head &&
+      python scripts/validate_schema.py
+    "
+  # Exits with code 0 on success, 1 on failure
+
+airflow-scheduler-test:
+  depends_on:
+    db-init-test:
+      condition: service_completed_successfully  # Requires exit 0
+```
+
+### Generic Design Benefits
+
+#### Future-Proof Architecture
+- **Zero maintenance** - No hardcoded table expectations
+- **Automatic adaptation** - Works with any schema evolution
+- **Universal compatibility** - Validates any database structure
+
+#### Production Safety
+- **Gatekeeper pattern** - Blocks services on schema failure
+- **Data integrity guarantee** - No partial initialization
+- **Zero corruption risk** - Validation without data insertion
+
+#### Corporate Standards Compliance
+- **Comprehensive coverage** - Structure, constraints, performance, integrity
+- **Audit trail** - Detailed validation logging
+- **Failure documentation** - Clear error reporting
+
+### Usage Examples
+
+#### Development Environment
+```bash
+make dev-up      # Runs full validation pipeline
+make db-reset    # Restarts validation after schema reset
+```
+
+#### Test Environment
+```bash
+make test        # Validates schema before running tests
+make test-unit   # Uses validated schema for unit tests
+```
+
+#### Production Deployment
+- Schema validation runs automatically during deployment
+- Services blocked until validation passes
+- Rollback triggered on validation failure
+
+### Validation Output Example
+```
+🚀 Starting database schema validation...
+
+--- Database Connectivity ---
+✅ Database connectivity verified
+
+--- Schema Completeness ---
+✅ Found 2 table(s): ['alembic_version', 'transactions']
+✅ Table 'alembic_version' has 1 column(s)
+✅ Table 'transactions' has 12 column(s)
+
+--- Table Structure ---
+✅ All table structures validated
+
+--- Performance Indexes ---
+✅ Total indexes across all tables: 5
+
+--- Constraints ---
+✅ Summary: 2 PK, 1 unique, 13 NOT NULL constraints
+
+--- Referential Integrity ---
+✅ All tables referential integrity validated
+
+🎉 Database schema validation PASSED!
+✅ Database is ready for use
+```
+
+### File Structure
+```
+etl/
+├── scripts/
+│   └── validate_schema.py    # Generic validation script
+├── migrations/
+│   └── versions/             # Alembic migration files
+└── Dockerfile                # Includes scripts/ in container
+```
+
 ## Monitoring & Observability
 
 ### Airflow UI (http://localhost:8080)

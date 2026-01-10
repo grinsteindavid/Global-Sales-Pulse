@@ -68,10 +68,29 @@ make dev-logs
 ### Run Tests
 
 ```bash
-make test          # All tests
+make test          # All tests (includes schema validation)
 make test-unit     # Unit tests only
 make test-int      # Integration tests
 ```
+
+### Database Schema Validation
+
+The system includes automatic schema validation that runs during database initialization:
+
+- **🔍 Comprehensive Checks** - Tables, columns, indexes, constraints, integrity
+- **🚫 Failure Prevention** - Blocks services if schema is invalid  
+- **🔧 Generic Design** - Works with any database structure
+- **📋 Detailed Logging** - Full validation report
+
+```bash
+# Manual validation
+docker compose -f compose/docker-compose.test.yaml up postgres-test db-init-test
+
+# Reset and re-validate
+make db-reset
+```
+
+> **Note**: Services depend on successful schema validation. If validation fails, dependent services will not start to prevent data corruption.
 
 ## Project Structure
 

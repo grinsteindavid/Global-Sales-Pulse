@@ -80,7 +80,14 @@ services:
       context: ./etl
       dockerfile: Dockerfile
     container_name: db-init
-    command: ["uv", "run", "alembic", "upgrade", "head"]
+    command: >
+      sh -c "
+        echo ' Running database migrations...' &&
+        uv run alembic upgrade head &&
+        echo ' Running schema validation...' &&
+        uv run python scripts/validate_schema.py &&
+        echo ' Database initialization completed successfully'
+      "
     environment:
       WAREHOUSE_DATABASE_URL: ${WAREHOUSE_DATABASE_URL:-postgresql+psycopg2://warehouse:warehouse@postgres-warehouse:5432/warehouse}
     depends_on:
