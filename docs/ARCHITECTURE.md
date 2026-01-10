@@ -156,19 +156,19 @@ CREATE INDEX idx_transactions_customer ON transactions(customer_id);
 
 ## Environment Strategy
 
-### Development (`docker-compose.dev.yaml`)
+### Development (`compose/docker-compose.dev.yaml`)
 - Hot reload for DAGs
 - Debug logging
 - Single replica services
 - Exposed ports for local debugging
 
-### Production (`docker-compose.prod.yaml`)
+### Production (`compose/docker-compose.prod.yaml`)
 - Resource limits
 - Health checks with restart policies
 - Multiple Airflow workers
 - No exposed ports (reverse proxy only)
 
-### Testing (`docker-compose.test.yaml`)
+### Testing (`compose/docker-compose.test.yaml`)
 - Isolated Postgres instance
 - Kafka with auto-create topics
 - Pytest runner container

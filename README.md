@@ -77,12 +77,13 @@ make test-int      # Integration tests
 
 ```
 Global-Sales-Pulse/
-├── docker-compose.yaml          # Base services
-├── docker-compose.dev.yaml      # Dev overrides
-├── docker-compose.prod.yaml     # Prod overrides
-├── docker-compose.test.yaml     # Test runner
-├── Makefile                     # All commands
-├── .env.example                 # Environment template
+├── compose/
+│   ├── docker-compose.yaml          # Base services
+│   ├── docker-compose.dev.yaml      # Dev overrides
+│   ├── docker-compose.prod.yaml     # Prod overrides
+│   └── docker-compose.test.yaml     # Test runner
+├── Makefile                         # All commands
+├── .env.example                     # Environment template
 │
 ├── producer/                    # Transaction simulator
 │   ├── Dockerfile
