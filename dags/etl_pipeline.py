@@ -35,6 +35,9 @@ def extract_from_kafka(**context) -> list[dict]:
         context["ti"].xcom_push(key="raw_messages", value=messages)
         context["ti"].xcom_push(key="message_count", value=len(messages))
         logger.info(f"Extracted {len(messages)} messages from Kafka")
+        
+        # Commit offsets BEFORE closing consumer
+        consumer.commit()
         return messages
     except Exception as e:
         logger.error(f"Failed to extract from Kafka: {e}")
@@ -95,27 +98,6 @@ def load_to_warehouse(**context) -> int:
         session.close()
 
 
-def commit_offsets(**context):
-    from src.consumers import KafkaTransactionConsumer
-
-    message_count = context["ti"].xcom_pull(key="message_count", task_ids="extract")
-
-    if not message_count or message_count == 0:
-        logger.info("No offsets to commit")
-        return
-
-    consumer = KafkaTransactionConsumer()
-    try:
-        consumer._consumer = consumer._create_consumer()
-        consumer._consumer.subscribe([consumer.topic])
-        consumer._consumer.poll(timeout=1.0)
-        consumer.commit()
-        logger.info("Committed Kafka offsets")
-    except Exception as e:
-        logger.error(f"Failed to commit offsets: {e}")
-        raise
-    finally:
-        consumer.close()
 
 
 with DAG(
@@ -145,10 +127,4 @@ with DAG(
         python_callable=load_to_warehouse,
     )
 
-    commit_task = PythonOperator(
-        task_id="commit_offsets",
-        python_callable=commit_offsets,
-        trigger_rule="all_success",
-    )
-
-    extract_task >> transform_task >> load_task >> commit_task
+    extract_task >> transform_task >> load_task
