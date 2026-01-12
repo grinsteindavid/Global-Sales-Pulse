@@ -1,8 +1,8 @@
 .PHONY: help dev-up dev-down dev-logs prod-up prod-down prod-logs test test-unit test-int test-e2e db-migrate db-reset lint shell-etl shell-producer shell-grafana grafana-logs clean
 
 DOCKER_COMPOSE = docker compose
-DEV_COMPOSE = $(DOCKER_COMPOSE) -f compose/docker-compose.yaml -f compose/docker-compose.dev.yaml
-PROD_COMPOSE = $(DOCKER_COMPOSE) -f compose/docker-compose.yaml -f compose/docker-compose.prod.yaml
+DEV_COMPOSE = $(DOCKER_COMPOSE) -p sales-pulse-dev -f compose/docker-compose.yaml -f compose/docker-compose.dev.yaml
+PROD_COMPOSE = $(DOCKER_COMPOSE) -p sales-pulse-prod -f compose/docker-compose.yaml -f compose/docker-compose.prod.yaml
 TEST_COMPOSE = $(DOCKER_COMPOSE) -p sales-pulse-test -f compose/docker-compose.test.yaml
 
 help:
@@ -129,7 +129,8 @@ kafka-consume:
 
 # Cleanup
 clean:
-	$(DOCKER_COMPOSE) -f compose/docker-compose.yaml -f compose/docker-compose.dev.yaml down -v --remove-orphans
+	$(DEV_COMPOSE) down -v --remove-orphans
+	$(PROD_COMPOSE) down -v --remove-orphans
 	$(TEST_COMPOSE) down -v --remove-orphans
 	docker system prune -f
 
