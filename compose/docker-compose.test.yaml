@@ -75,6 +75,7 @@ services:
       "
     environment:
       WAREHOUSE_DATABASE_URL: postgresql+psycopg2://warehouse_test:warehouse_test@postgres-test:5432/warehouse_test
+      PYTHONPATH: /app/src
     depends_on:
       postgres-test:
         condition: service_healthy
