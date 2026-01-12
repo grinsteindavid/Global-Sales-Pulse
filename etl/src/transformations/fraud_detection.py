@@ -1,3 +1,4 @@
+import pandas as pd
 from decimal import Decimal
 
 
@@ -9,3 +10,17 @@ class FraudDetector:
 
     def is_fraudulent(self, amount: Decimal) -> bool:
         return amount > self.threshold
+
+    def detect_fraud_batch(self, amounts: list[Decimal]) -> list[bool]:
+        """Vectorized fraud detection for batch processing."""
+        if not amounts:
+            return []
+        
+        # Convert to pandas Series for vectorized operations
+        amount_series = pd.Series([float(amount) for amount in amounts])
+        threshold_float = float(self.threshold)
+        
+        # Vectorized comparison
+        fraud_flags = amount_series > threshold_float
+        
+        return fraud_flags.tolist()
