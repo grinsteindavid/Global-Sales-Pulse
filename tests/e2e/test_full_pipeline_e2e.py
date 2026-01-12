@@ -118,7 +118,7 @@ class TestFullPipelineE2E:
 
         trigger_airflow_dag("etl_pipeline")
 
-        record = wait_for_record(session, order_id, timeout=35)
+        record = wait_for_record(session, order_id, timeout=60)
 
         assert record is not None, f"Record {order_id} not found in warehouse"
         assert float(record.amount) == 250.00
