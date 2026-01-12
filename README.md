@@ -2,6 +2,9 @@
 
 Real-time financial transaction monitoring pipeline using **Kafka**, **Airflow**, and **PostgreSQL**.
 
+<img width="1436" height="722" alt="image" src="https://github.com/user-attachments/assets/c4f504bf-853b-492e-9617-878f638b0a92" />
+
+
 ## Overview
 
 This project demonstrates a production-grade ETL pipeline that:
